@@ -1,0 +1,179 @@
+/* Тренажёр CCNA · Пинг — персонаж-помощник: мимика, реплики, статус и советы.
+   Подключается после core.js: пользуется P, counts(), streaks(), dayRatio() во время вызова. */
+"use strict";
+const PING_NAME="Пинг";
+
+/* ═══ Мимика ══════════════════════════════════════════
+   Тело одинаковое, меняются антенна, глаза, рот и мелочи вокруг. */
+const P_BODY='<rect class="bd" x="6" y="14" width="32" height="25" rx="8"/>';
+const P_PORT='<path class="ln" d="M3 25.5h3M38 25.5h3"/>';
+const P_FEET='<path class="ln" d="M14 39v3.4M30 39v3.4"/>';
+const P_ANT='<path class="ln" d="M22 14V7.6"/><circle class="sig" cx="22" cy="5.4" r="2.3"/>';
+const P_EYES='<circle class="ey" cx="16" cy="24" r="2.5"/><circle class="ey" cx="28" cy="24" r="2.5"/>';
+const P_EYES_H='<path class="mo" d="M13.4 25.2q2.6-3.4 5.2 0M25.4 25.2q2.6-3.4 5.2 0"/>';
+const P_SPARK='<path class="ln thin" d="M26.8 3.2l2.2-1.5M28.4 6.4l2.6.3"/>';
+const PING_ART={
+ idle:  P_BODY+P_PORT+P_FEET+P_ANT+P_EYES+'<path class="mo" d="M17.6 31.2q4.4 3.6 8.8 0"/>',
+ happy: P_BODY+P_PORT+P_FEET+P_ANT+P_SPARK+P_EYES_H+'<path class="mo" d="M16.8 30.4q5.2 5.6 10.4 0"/>',
+ cheer: P_BODY+P_FEET+'<path class="ln" d="M7.2 22.4L2.8 16.8M36.8 22.4l4.4-5.6"/>'+P_ANT+P_SPARK+P_EYES_H+'<path class="lg" d="M16.6 30q5.4 6.4 10.8 0z"/>',
+ sad:   P_BODY+P_PORT+P_FEET+'<path class="ln" d="M22 14c0-4.4-2.4-5.6-5-6.2"/><circle class="sig" cx="16.2" cy="7.2" r="2.3"/>'
+       +'<circle class="ey" cx="16" cy="25" r="2.3"/><circle class="ey" cx="28" cy="25" r="2.3"/>'
+       +'<path class="br" d="M12.9 20.8q3-1.9 5.6-.5M25.5 20.3q2.6-1.4 5.6.5"/><path class="mo" d="M18 33.4q4-3.4 8 0"/>',
+ think: P_BODY+P_PORT+P_FEET+P_ANT+'<circle class="ey" cx="16" cy="24" r="2.5"/><path class="mo" d="M25.6 24h4.8M19.6 32h4.8"/>'
+       +'<circle class="sig" cx="34.4" cy="15.4" r="1.1"/><circle class="sig" cx="38.2" cy="11.6" r="1.7"/>',
+ sleep: P_BODY+P_PORT+P_FEET+P_ANT+'<path class="mo" d="M13.6 24.4h4.8M25.6 24.4h4.8M19.6 31.4q2.4 2.4 4.8 0"/>'
+       +'<path class="ln thin" d="M31.6 14.6h4.8l-4.8 5.4h4.8"/>'
+};
+const pingSvg=mood=>`<span class="pingface"><svg class="pingsvg" viewBox="0 0 44 46" aria-hidden="true">${PING_ART[mood]||PING_ART.idle}</svg></span>`;
+
+/* ═══ Реплики ═════════════════════════════════════════ */
+const PING_SAY={
+ ok:["Верно! Так и запоминается.","Точно в цель.","Есть — пакет доставлен.",
+     "Верно. Оцените, легко ли вспомнилось: от этого зависит следующий показ.",
+     "Хорошо! Ещё одна карточка идёт в долгую память.",
+     "Правильно. Спокойный темп работает лучше спешки.",
+     "Отлично. Такие ответы и растят серию."],
+ streak:["{n} верных подряд — красиво!","Серия {n}. Разгоняемся.","Уже {n} без промаха. Так держать!","{n} подряд — связь стабильная."],
+ bad:["Ничего страшного: ошибка — это просто ещё одно повторение.",
+      "Спокойно. Эту карточку я верну через пару заданий.",
+      "Так бывает. Прочитайте разбор — и дальше.",
+      "Не переживайте: понять важнее, чем угадать.",
+      "Бывает. Зато теперь запомнится крепче.",
+      "Ошиблись — значит, нашли пробел. Это полезная находка."],
+ show:["Честный ход. Смотрим разбор вместе.","Иногда посмотреть ответ полезнее, чем гадать.","Хорошо, что не стали угадывать. Читаем разбор."],
+ pracOk:["Есть решение! Считаете уверенно.","Верно. Ещё пара таких — и будет на автомате.","Точно. Скорость придёт сама, главное — метод."],
+ pracBad:["Не сходится. Посмотрите разбор по шагам — там видно, где свернули.",
+          "Почти. Сверьтесь с разбором и берите следующую.",
+          "Такие задачи и ловят на экзамене. Разберём — и дальше."],
+ caseOk:["Диагноз верный — инженерное мышление работает.","Так и есть. Теперь давайте починим.","В точку! Осталось выполнить настройку."],
+ caseBad:["Причина другая, но подход верный: смотреть вывод команд.","Мимо. Зато теперь видно, какой вывод о чём говорит."],
+ caseFix:["Связь восстановлена! Отличная работа.","Готово — неисправность устранена.","Сеть снова живая. Красиво."],
+ matchOk:["Все пары без ошибок — чисто!","Идеально разложено по полочкам."],
+ matchErr:["Готово. Ошибки здесь не страшны — зато пары запомнились."],
+ cliOk:["Настроено. Команды входят в пальцы.","Готово. Каждая такая задача — плюс к уверенности в консоли."],
+ cliClean:["Без единой ошибки и подсказки — как настоящий инженер.","Чисто с первого раза! Отличная память на синтаксис."],
+ sumHi:["Сильная сессия! Это уже понимание, а не удача.","Очень хороший результат. Так и выглядит готовность к экзамену."],
+ sumMid:["Хорошая работа. Слабые места я запомнил — вернёмся к ним.","Нормальный результат. Ошибки вернутся карточками — и станут знанием."],
+ sumLow:["Главное — дошли до конца. Ошибки сегодня превращаются в знания завтра.","Тяжёлая сессия, зато честная. Эти карточки теперь под особым присмотром."],
+ mixHi:["Микс взят почти без потерь. Сильно!","Разные типы заданий подряд — и такой результат. Отлично."],
+ mixMid:["Хороший микс. Самое полезное — что задания шли вперемешку.","Неплохо. Именно так и проверяется, что тема понята, а не заучена."],
+ mixLow:["Микс был непростым — зато сразу видно, что подтянуть.","Ничего. Соберём новый: слабые темы я поставлю вперёд."],
+ sleep:["В выбранных блоках всё повторено. Включите ещё блок — или загляните в практику.",
+        "Повторять пока нечего: интервалы ещё не подошли. Можно потренировать задачи."],
+ mile:["Молодец — в том же духе!","Отличный ритм, так держать!","Идёт как по маслу!","Красиво! Не сбавляйте темп.","Вы поймали волну — продолжаем."],
+ mileBig:["Вот это серия! Это уже уверенное знание, а не везение.","Мощно! Примерно так и сдают экзамен.","Длинная серия без единой ошибки — снимаю шляпу."],
+ tip:["Лучше 15 минут каждый день, чем два часа раз в неделю.",
+      "Проговаривайте ответ вслух — так видно, понимаете вы или просто узнаёте.",
+      "Термины с пунктиром можно нажать — открою короткое пояснение.",
+      "В миксе задания идут вперемешку: мозг не привыкает к однотипным вопросам.",
+      "Не бойтесь оценки «трудно» — честная оценка настраивает повторения точнее.",
+      "Если тема не идёт, спросите Claude прямо в карточке.",
+      "Считая подсети, сначала запишите маску в двоичном виде — ошибок будет меньше.",
+      "Десять карточек перед сном — и память закрепит их за ночь."]
+};
+let pingLast={};                                        // последняя реплика набора — чтобы не повторяться подряд
+function pingPick(key,vars){
+  const a=PING_SAY[key]; if(!a||!a.length) return "";
+  let i=Math.floor(Math.random()*a.length);
+  if(a.length>1&&i===pingLast[key]) i=(i+1)%a.length;
+  pingLast[key]=i;
+  return a[i].replace(/\{(\w+)\}/g,(m,k)=>(vars&&vars[k]!==undefined)?vars[k]:m);
+}
+const pingOn=()=>P.ui.ping!==false;
+const pingRow=(mood,key,vars)=>pingOn()?`<div class="pingsay">${pingSvg(mood)}<span>${esc(pingPick(key,vars))}</span></div>`:"";
+function pingBlock(mood,key,vars){
+  if(!pingOn()) return "";
+  return `<div class="pingbig">${pingSvg(mood)}<div class="pingb-t"><b>${PING_NAME}</b><p>${esc(pingPick(key,vars))}</p></div></div>`;
+}
+
+/* ═══ Поздравление с серией верных ответов ════════════ */
+const PING_NUM={3:"Три",5:"Пять",10:"Десять",15:"Пятнадцать",20:"Двадцать",25:"Двадцать пять",30:"Тридцать"};
+const pingMile=n=>n===3||n===5||(n>5&&n%5===0);            // 3, 5, 10, 15, 20 …
+let pingCelT=null;
+function pingCelebrate(n){
+  if(!pingOn()||!pingMile(n)) return;
+  const old=document.querySelector(".pstreak"); if(old) old.remove();
+  clearTimeout(pingCelT);
+  const el=document.createElement("div");
+  el.className="pstreak"+(document.querySelector(".toast")?" up":"");
+  el.setAttribute("role","status");
+  el.innerHTML=`<span class="psp"><i></i><i></i><i></i><i></i><i></i></span>${pingSvg("cheer")}
+    <div class="pst-t"><b>${esc((PING_NUM[n]||n)+" подряд!")}</b><span>${esc(pingPick(n>=10?"mileBig":"mile"))}</span></div>`;
+  el.addEventListener("click",()=>el.remove());
+  document.body.appendChild(el);
+  pingCelT=setTimeout(()=>{ el.classList.add("out"); setTimeout(()=>el.remove(),320); },2100);
+}
+
+/* ═══ Статус: что сказать про день и что предложить ═══ */
+function pingGoalLeft(){
+  const d=P.days[dayKey(Date.now())]||{};
+  return {c:Math.max(0,(+P.goal.cards||0)-(d.c||0)), p:Math.max(0,(+P.goal.prac||0)-(d.p||0))};
+}
+function pingLastActive(){
+  const tk=dayKey(Date.now());
+  const ks=Object.keys(P.days).filter(k=>k<tk&&P.days[k]&&((P.days[k].c||0)+(P.days[k].p||0)+(P.days[k].k||0))>0).sort();
+  return ks.length?ks[ks.length-1]:"";
+}
+function pingWeakDay(){
+  const by={};
+  BANK.forEach(q=>{const r=P.cards[q.id]; if(!r) return; const o=by[q.day]||(by[q.day]={c:0,n:0}); o.c+=r.c||0; o.n+=(r.c||0)+(r.w||0);});
+  let best=null;
+  Object.keys(by).forEach(k=>{const o=by[k], acc=o.n?o.c/o.n:1; if(o.n<3||acc>=0.8) return; if(!best||acc<best.acc) best={d:+k,acc};});
+  return best;
+}
+function pingMood(){
+  if(dayRatio(P.days[dayKey(Date.now())])>=1) return "cheer";
+  const c=counts();
+  return (!c.due&&!c.fresh)?"sleep":"idle";
+}
+function pingStatus(){
+  const tk=dayKey(Date.now()), ratio=dayRatio(P.days[tk]), st=streaks(), c=counts(), gl=pingGoalLeft();
+  const start=!Object.keys(P.days).length&&!Object.keys(P.cards).length;
+  if(start) return {mood:"happy",acts:[["Открыть микс",'data-mode="mix"']],
+    line:`Привет! Я ${PING_NAME}. Буду рядом: подскажу, похвалю и присмотрю за целью дня. Начнём с микса — он сам соберёт задания.`
+      +(window.EDITION==="public"?" Это открытая бета: заметили ошибку или есть идея — нажмите «Отзыв» над заданием.":"")};
+  if(ratio>=1) return {mood:"cheer",acts:[["Ещё микс",'data-mode="mix"']],
+    line:`Цель дня закрыта${st.cur?`, серия ${st.cur} ${plural(st.cur,"день","дня","дней")}`:""}. Можно отдохнуть — или пройти ещё один микс.`};
+  const la=pingLastActive();
+  if(la){
+    const gap=Math.round((new Date(tk+"T00:00:00")-new Date(la+"T00:00:00"))/DAY);
+    if(gap>=3) return {mood:"happy",acts:[["Собрать микс",'data-mode="mix"']],
+      line:`Не виделись ${gap} ${plural(gap,"день","дня","дней")} — ничего страшного, серию начнём заново. Короткий микс, и день закрыт.`};
+  }
+  if(!c.due&&!c.fresh) return {mood:"sleep",line:pingPick("sleep"),acts:[["Практика",'data-mode="prac"']]};
+  const parts=[];
+  if(gl.c) parts.push(`${gl.c} ${plural(gl.c,"карточка","карточки","карточек")}`);
+  if(gl.p) parts.push(`${gl.p} ${plural(gl.p,"задача","задачи","задач")}`);
+  const w=pingWeakDay();
+  const acts=[["Продолжить в миксе",'data-mode="mix"']];
+  if(w) acts.push([`Тренировать день ${w.d}`,`data-act="trainday" data-day="${w.d}"`]);
+  return {mood:"idle",acts,
+    line:(parts.length?`До цели дня осталось: ${parts.join(" и ")}. `:"")
+      +(w?`Слабее всего идёт день ${w.d} — там верных ${Math.round(w.acc*100)}%.`:pingPick("tip"))};
+}
+
+function pingStatusBlock(){
+  if(!pingOn()) return "";
+  const st=pingStatus(), acts=(st.acts||[]).map(a=>`<button class="mini" ${a[1]}>${esc(a[0])}</button>`).join("");
+  return `<div class="pingbig">${pingSvg(st.mood)}<div class="pingb-t"><b>${PING_NAME}</b><p>${esc(st.line)}</p>${acts?`<div class="pingb-a">${acts}</div>`:""}</div></div>`;
+}
+
+/* ═══ Аватар в рейке и окошко с репликой ══════════════ */
+let pingBub=null;                                       // открытое окошко: держим текст, чтобы он не менялся при перерисовке
+function pingOpen(){
+  const bb=$("pingBubble"); if(!bb||!pingOn()) return;
+  pingBub=pingStatus();
+  const acts=(pingBub.acts||[]).map(a=>`<button class="mini" ${a[1]}>${esc(a[0])}</button>`).join("");
+  bb.innerHTML=`${pingSvg(pingBub.mood)}<div class="pingb-t"><b>${PING_NAME}</b><p>${esc(pingBub.line)}</p>${acts?`<div class="pingb-a">${acts}</div>`:""}</div>
+    <button class="gp-x" data-act="pingclose" aria-label="Закрыть">×</button>`;
+  bb.hidden=false; renderPing();
+}
+function pingClose(){ pingBub=null; const bb=$("pingBubble"); if(bb) bb.hidden=true; renderPing(); }
+function pingToggle(){ pingBub?pingClose():pingOpen(); }
+function renderPing(){
+  const av=$("pingAv"); if(!av) return;
+  if(!pingOn()){ av.hidden=true; const bb=$("pingBubble"); if(bb) bb.hidden=true; pingBub=null; return; }
+  av.hidden=false;
+  av.innerHTML=pingSvg(pingBub?pingBub.mood:pingMood());
+  av.setAttribute("aria-expanded",String(!!pingBub));
+}
