@@ -1,17 +1,12 @@
 {
-  "name": "Тренажёр CCNA 200-301",
-  "short_name": "CCNA",
-  "description": "Карточки, мини-лекции, подсети, команды IOS и кейсы по курсу Jeremy's IT Lab",
+  "name": "Пинг — тренажёр CCNA",
+  "short_name": "Пинг CCNA",
+  "description": "Лекции, карточки, сетевые задачи, команды IOS и диагностика",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#F1F3F2",
-  "theme_color": "#F1F3F2",
-  "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+  "background_color": "#f4f1ea",
+  "theme_color": "#f4f1ea",
+  "icons": [{"src":"signal-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }

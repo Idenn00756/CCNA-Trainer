@@ -1,25 +1,19 @@
-/* Тренажёр CCNA · сервис-воркер: приложение открывается без интернета.
-   Стратегия — отдать из кеша сразу, а в фоне забрать свежую версию на следующий запуск.
-   При обновлении файлов поменяйте VER: старый кеш будет удалён. */
-const VER="ccna-v12";
-const ASSETS=["./","./index.html","./bank-a.js","./bank-b.js","./cli.js","./glossary.js","./drills.js",
-  "./cases.js","./match.js","./lessons.js","./core.js","./ping.js","./app.js","./manifest.webmanifest",
-  "./icon-180.png","./icon-192.png","./icon-512.png"];
-
-self.addEventListener("install",e=>{
-  e.waitUntil(caches.open(VER).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
-});
-self.addEventListener("activate",e=>{
-  e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VER).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
-});
-self.addEventListener("fetch",e=>{
-  const req=e.request;
-  if(req.method!=="GET"||new URL(req.url).origin!==location.origin) return;   // шрифты и прочее — мимо кеша
-  e.respondWith(caches.match(req).then(hit=>{
-    const net=fetch(req).then(res=>{
-      if(res&&res.status===200) caches.open(VER).then(c=>c.put(req,res.clone()));
-      return res;
-    }).catch(()=>hit);
-    return hit||net;
-  }));
+const CACHE="ccna-signal-v13";
+const SHELL=[
+  "./","./index.html","./manifest.webmanifest","./signal-icon.svg",
+  "./styles/tokens.css","./styles/base.css","./styles/components.css","./styles/screens.css","./styles/responsive.css","./styles/signal.css",
+  "./data/cards-basics.js","./data/cards-advanced.js","./data/cli-tasks.js","./data/glossary.js","./data/drills.js","./data/cases.js","./data/match-sets.js","./data/lessons.js",
+  "./app/globals.js","./app/storage.js","./app/day-goal.js","./app/srs.js","./app/diagram.js","./app/glossary-popup.js","./app/claude.js","./app/achievements.js","./app/ping.js",
+  "./app/screens/cards-ask.js","./app/screens/mix.js","./app/screens/cards.js","./app/screens/practice.js","./app/screens/cases.js","./app/screens/match.js","./app/screens/cli.js","./app/screens/lessons.js","./app/screens/home.js","./app/screens/progress.js",
+  "./app/nav.js","./app/settings.js","./app/feedback.js","./app/render.js","./app/events.js","./app/signal-home.js","./app/main.js"
+];
+self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)).then(()=>self.skipWaiting())));
+self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
+self.addEventListener("fetch",event=>{
+  const request=event.request;
+  if(request.method!=="GET"||new URL(request.url).origin!==location.origin)return;
+  event.respondWith(fetch(request).then(response=>{
+    if(response.ok)caches.open(CACHE).then(cache=>cache.put(request,response.clone()));
+    return response;
+  }).catch(()=>caches.match(request).then(hit=>hit||caches.match("./index.html"))));
 });

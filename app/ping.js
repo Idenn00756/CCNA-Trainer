@@ -1,30 +1,18 @@
-/* Тренажёр CCNA · Пинг — персонаж-помощник: мимика, реплики, статус и советы.
+/* Тренажёр CCNA · Пинг — персонаж-помощник.
+   Рисуется одной фигурой в акцентном цвете: округлое тело с «пиком сигнала» сверху,
+   выразительные глаза и рот. Настроение меняет только лицо и добавляет класс анимации,
+   поэтому персонаж остаётся узнаваемым в любом размере — от 24 пикселей до крупного блока.
    Подключается после core.js: пользуется P, counts(), streaks(), dayRatio() во время вызова. */
 "use strict";
 const PING_NAME="Пинг";
 
-/* ═══ Мимика ══════════════════════════════════════════
-   Тело одинаковое, меняются антенна, глаза, рот и мелочи вокруг. */
-const P_BODY='<rect class="bd" x="6" y="14" width="32" height="25" rx="8"/>';
-const P_PORT='<path class="ln" d="M3 25.5h3M38 25.5h3"/>';
-const P_FEET='<path class="ln" d="M14 39v3.4M30 39v3.4"/>';
-const P_ANT='<path class="ln" d="M22 14V7.6"/><circle class="sig" cx="22" cy="5.4" r="2.3"/>';
-const P_EYES='<circle class="ey" cx="16" cy="24" r="2.5"/><circle class="ey" cx="28" cy="24" r="2.5"/>';
-const P_EYES_H='<path class="mo" d="M13.4 25.2q2.6-3.4 5.2 0M25.4 25.2q2.6-3.4 5.2 0"/>';
-const P_SPARK='<path class="ln thin" d="M26.8 3.2l2.2-1.5M28.4 6.4l2.6.3"/>';
-const PING_ART={
- idle:  P_BODY+P_PORT+P_FEET+P_ANT+P_EYES+'<path class="mo" d="M17.6 31.2q4.4 3.6 8.8 0"/>',
- happy: P_BODY+P_PORT+P_FEET+P_ANT+P_SPARK+P_EYES_H+'<path class="mo" d="M16.8 30.4q5.2 5.6 10.4 0"/>',
- cheer: P_BODY+P_FEET+'<path class="ln" d="M7.2 22.4L2.8 16.8M36.8 22.4l4.4-5.6"/>'+P_ANT+P_SPARK+P_EYES_H+'<path class="lg" d="M16.6 30q5.4 6.4 10.8 0z"/>',
- sad:   P_BODY+P_PORT+P_FEET+'<path class="ln" d="M22 14c0-4.4-2.4-5.6-5-6.2"/><circle class="sig" cx="16.2" cy="7.2" r="2.3"/>'
-       +'<circle class="ey" cx="16" cy="25" r="2.3"/><circle class="ey" cx="28" cy="25" r="2.3"/>'
-       +'<path class="br" d="M12.9 20.8q3-1.9 5.6-.5M25.5 20.3q2.6-1.4 5.6.5"/><path class="mo" d="M18 33.4q4-3.4 8 0"/>',
- think: P_BODY+P_PORT+P_FEET+P_ANT+'<circle class="ey" cx="16" cy="24" r="2.5"/><path class="mo" d="M25.6 24h4.8M19.6 32h4.8"/>'
-       +'<circle class="sig" cx="34.4" cy="15.4" r="1.1"/><circle class="sig" cx="38.2" cy="11.6" r="1.7"/>',
- sleep: P_BODY+P_PORT+P_FEET+P_ANT+'<path class="mo" d="M13.6 24.4h4.8M25.6 24.4h4.8M19.6 31.4q2.4 2.4 4.8 0"/>'
-       +'<path class="ln thin" d="M31.6 14.6h4.8l-4.8 5.4h4.8"/>'
-};
-const pingSvg=mood=>`<span class="pingface"><svg class="pingsvg" viewBox="0 0 44 46" aria-hidden="true">${PING_ART[mood]||PING_ART.idle}</svg></span>`;
+/* ═══ Рисунок ═════════════════════════════════════════ */
+const FOX_BASE='<path fill="#be592e" d="M4 3L18 13h12L44 3l-4 29-16 14L8 32z"/><path fill="#faefd9" d="M8 9l12 9h8l12-9-5 22-11 10-11-10z"/><path d="M10 12l5 9m-2-10 5 10m20-9-5 9m2-10-5 10" fill="none" stroke="#695444" stroke-width="1.2"/><path fill="#292820" d="M20 33h8l-4 5z"/><path class="signal-tip" d="M41 2h4l-1 5-4-1z"/>';
+const PING_ART={idle:'<path class="fox-eye" d="M13 24l8 2-5 4zm22 0-8 2 5 4z"/>',happy:'<path d="M14 27q3-5 6 0m8 0q3-5 6 0" fill="none" stroke="#292820" stroke-width="2"/>',think:'<path class="fox-eye" d="M13 24l8 2-5 4z"/><path d="M28 27h6" stroke="#292820" stroke-width="2"/>',sad:'<path class="fox-eye" d="M14 28l6-3v4zm20 0-6-3v4z"/>',sleep:'<path d="M14 27h6m8 0h6" stroke="#292820" stroke-width="2"/>'};
+PING_ART.cheer=PING_ART.happy;
+const pingSvg=(mood,extra)=>`<span class="pingface mood-${mood in PING_ART?mood:"idle"}${extra?" "+extra:""}"><svg class="pingsvg signal-fox" viewBox="0 0 48 48" aria-hidden="true">${FOX_BASE}${PING_ART[mood]||PING_ART.idle}</svg></span>`;
+/* огонёк серии дней */
+const pingFlame=()=>`<svg class="flame" viewBox="0 0 24 28" aria-hidden="true"><path class="f1" d="M12 0c1.6 5.2-1.4 7.2-3.6 9.6C6 12.2 4 14.6 4 18.2 4 23.6 8 28 12 28s8-4.4 8-9.8c0-4.4-2.6-6.6-5.2-9.4C12.6 6.4 11 4 12 0z"/><path class="f2" d="M12 11c.9 2.8-1 4-2 5.4-.9 1.2-1.6 2.4-1.6 4 0 2.8 1.9 5.2 3.9 5.2s3.9-2.4 3.9-5.2c0-2.3-1.3-3.5-2.6-5-1-1.1-1.9-2.3-1.6-4.4z"/></svg>`;
 
 /* ═══ Реплики ═════════════════════════════════════════ */
 const PING_SAY={
@@ -97,11 +85,10 @@ function pingCelebrate(n){
   const el=document.createElement("div");
   el.className="pstreak"+(document.querySelector(".toast")?" up":"");
   el.setAttribute("role","status");
-  el.innerHTML=`<span class="psp"><i></i><i></i><i></i><i></i><i></i></span>${pingSvg("cheer")}
-    <div class="pst-t"><b>${esc((PING_NUM[n]||n)+" подряд!")}</b><span>${esc(pingPick(n>=10?"mileBig":"mile"))}</span></div>`;
+  el.innerHTML=`${pingSvg("cheer")}<div class="pst-t"><b>${esc((PING_NUM[n]||n)+" подряд!")}</b><span>${esc(pingPick(n>=10?"mileBig":"mile"))}</span></div>`;
   el.addEventListener("click",()=>el.remove());
   document.body.appendChild(el);
-  pingCelT=setTimeout(()=>{ el.classList.add("out"); setTimeout(()=>el.remove(),320); },2100);
+  pingCelT=setTimeout(()=>{ el.classList.add("out"); setTimeout(()=>el.remove(),320); },2300);
 }
 
 /* ═══ Статус: что сказать про день и что предложить ═══ */
@@ -151,14 +138,13 @@ function pingStatus(){
     line:(parts.length?`До цели дня осталось: ${parts.join(" и ")}. `:"")
       +(w?`Слабее всего идёт день ${w.d} — там верных ${Math.round(w.acc*100)}%.`:pingPick("tip"))};
 }
-
 function pingStatusBlock(){
   if(!pingOn()) return "";
   const st=pingStatus(), acts=(st.acts||[]).map(a=>`<button class="mini" ${a[1]}>${esc(a[0])}</button>`).join("");
   return `<div class="pingbig">${pingSvg(st.mood)}<div class="pingb-t"><b>${PING_NAME}</b><p>${esc(st.line)}</p>${acts?`<div class="pingb-a">${acts}</div>`:""}</div></div>`;
 }
 
-/* ═══ Аватар в рейке и окошко с репликой ══════════════ */
+/* ═══ Аватар в шапке и окошко с репликой ══════════════ */
 let pingBub=null;                                       // открытое окошко: держим текст, чтобы он не менялся при перерисовке
 function pingOpen(){
   const bb=$("pingBubble"); if(!bb||!pingOn()) return;
