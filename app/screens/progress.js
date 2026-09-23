@@ -45,6 +45,8 @@ function renderProgress(){
 
   const cliDone=CLI.filter(t=>P.cli[t.id]&&P.cli[t.id].done).length, cliClean=CLI.filter(t=>{const r=P.cli[t.id];return r&&r.done&&!r.err&&!r.hints;}).length;
   const lread=LESSONS.filter(l=>P.read[l.id]).length;
+  const guided=LESSONS.filter(courseEnabled), mastered=guided.filter(l=>P.course[l.day]?.reviewPassedAt).length;
+  const dueReviews=guided.filter(l=>{const r=P.course[l.day]||{};return r.practicePassedAt&&!r.reviewPassedAt&&r.reviewDue<=Date.now();}).length;
   const got=ACH.reduce((s,a)=>s+achState(a).lvl,0), all=ACH.reduce((s,a)=>s+a.tiers.length,0);
   const achs=ACH.map(a=>{
     const s=achState(a), n=a.tiers.length, max=s.lvl>=n, target=max?a.tiers[n-1]:s.next;
@@ -68,6 +70,7 @@ function renderProgress(){
     <section class="pg-sec"><div class="pg-h">Практика по темам</div><div class="wlist">${topics}${extra}</div></section>
     <section class="pg-sec"><div class="pg-h">Мини-лекции</div><div class="wlist">${
       wrow("Теория по дням курса",lread?`осталось непрочитанных — ${LESSONS.length-lread}`:"ещё не открывали",`${lread}/${LESSONS.length}`,LESSONS.length?lread/LESSONS.length:0,'<button class="mini" data-mode="lect">Открыть</button>')
+      +wrow("Освоено в учебном маршруте",dueReviews?`пора повторить ${dueReviews} ${plural(dueReviews,"урок","урока","уроков")}`:"лекция, проверка, ситуация и повторение",`${mastered}/${guided.length}`,guided.length?mastered/guided.length:0,'<button class="mini" data-mode="lect">Продолжить</button>')
     }</div></section>
     <section class="pg-sec"><div class="pg-h">Команды IOS</div><div class="wlist">${wrow("Решено задач",`без ошибок и подсказок — ${cliClean}`,`${cliDone}/${CLI.length}`,CLI.length?cliDone/CLI.length:0,'<button class="mini" data-mode="cli">Открыть</button>')}</div></section>
   </div>`;

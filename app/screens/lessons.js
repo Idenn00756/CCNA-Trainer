@@ -19,7 +19,12 @@ ${body}
 
 Запомнить: ${l.key.map(strip).join("; ")}`;
 }
-function lectOpen(id){ P.ui.lesson=id; Object.assign(LASK,{id:null,q:"",text:"",note:"",busy:false,ctl:null}); save(); }
+function lectOpen(id){
+  P.ui.lesson=id;
+  P.ui.lessonStage=courseSuggestedStage(LESSONS.find(l=>l.id===id));
+  COURSE.day=0;
+  Object.assign(LASK,{id:null,q:"",text:"",note:"",busy:false,ctl:null}); save();
+}
 function lectStep(d){
   const L=lectList(), i=L.findIndex(l=>l.id===P.ui.lesson), n=i<0?null:L[i+d];
   if(n) lectOpen(n.id); else { P.ui.lesson=""; save(); }          // за краем списка — обратно в оглавление
@@ -28,6 +33,9 @@ function lectStep(d){
 function lectDone(){
   const l=lectCur(); if(!l) return;
   if(!P.read[l.id]){ P.read[l.id]=Date.now(); save(); }
+  if(courseEnabled(l)){
+    P.ui.lessonStage="check"; COURSE.day=0; save(); render(); window.scrollTo({top:0}); return;
+  }
   lectStep(1);
 }
 async function askLesson(kind){
@@ -55,13 +63,14 @@ function renderLAsk(){
       :`<div class="ask-chips">${chips.map(([k,t])=>`<button class="mini chipq" data-lask="${k}">${t}</button>`).join("")}</div>`}</div>`;
 }
 function renderLectIndex(L){
-  const done=L.filter(x=>P.read[x.id]).length, next=L.find(x=>!P.read[x.id]);
+  const done=L.filter(x=>P.read[x.id]).length, next=courseNextLesson();
+  const mastered=L.filter(x=>courseEnabled(x)&&P.course[x.day]?.reviewPassedAt).length;
   const rows=L.map(x=>`<button class="lrow${P.read[x.id]?" done":""}" data-lesson="${x.id}">
-    <span class="lnum">${x.day}</span><span class="lt"><b>${esc(x.t)}</b><span class="lmeta">${esc(DAYS[x.day]||"")} · ≈${x.min} мин</span></span>
-    <span class="lmark">${P.read[x.id]?"✓":"→"}</span></button>`).join("");
+    <span class="lnum">${x.day}</span><span class="lt"><b>${esc(x.t)}</b><span class="lmeta">${esc(DAYS[x.day]||"")} · ≈${x.min} мин${courseEnabled(x)?` · ${esc(courseStatus(x))}`:""}</span></span>
+    <span class="lmark">${courseEnabled(x)?P.course[x.day]?.reviewPassedAt?"✓":"→":P.read[x.id]?"✓":"→"}</span></button>`).join("");
   $("card").innerHTML=`<div class="chead"><span class="dtag">Мини-лекции</span><span class="day">теория по дням курса</span><span class="pos">прочитано ${done} / ${L.length}</span></div>
-    <div class="lidx">${rows}</div>`;
-  $("controls").innerHTML=(next?`<button class="btn primary" data-lesson="${next.id}">${done?"Продолжить чтение":"Начать с первой"}</button>`:"")
+    <div class="course-index-note">Первые 15 дней: лекция → проверка → ситуация → повторение на следующий день. Освоено: ${mastered} из ${L.filter(courseEnabled).length}.</div><div class="lidx">${rows}</div>`;
+  $("controls").innerHTML=(next?`<button class="btn primary" data-lesson="${next.id}">${done?"Продолжить обучение":"Начать с первого дня"}</button>`:"")
     +'<button class="btn ghost" data-mode="mix">К миксу</button>';
 }
 function renderLessons(){
@@ -71,18 +80,30 @@ function renderLessons(){
     $("controls").innerHTML='<button class="btn primary" data-act="early">Включить дни 1–15</button>'; return;
   }
   if(!l||!L.some(x=>x.id===l.id)){ renderLectIndex(L); return; }
+  if(courseEnabled(l)&&P.ui.lessonStage!=="read"){
+    const r=P.course[l.day]||{}, stage=P.ui.lessonStage;
+    if(stage==="check"&&P.read[l.id]||stage==="practice"&&r.quizPassedAt||stage==="review"&&r.practicePassedAt&&r.reviewDue<=Date.now()){
+      renderCourseStage(l); return;
+    }
+    P.ui.lessonStage="read";
+  }
   const i=L.findIndex(x=>x.id===l.id), b=BLOCKS[l.b], rd=!!P.read[l.id];
   const secs=l.secs.map(s=>`<section class="lsec"><h3>${esc(s.h)}</h3>${s.p?`<p>${s.p}</p>`:""}${
     s.list?`<ul>${s.list.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}${
     s.cli?`<pre class="cli">${esc(s.cli)}</pre>`:""}${s.fig?drawFig(s.fig):""}</section>`).join("");
-  card.innerHTML=`<div class="chead"><span class="dtag">${wire(b)}${esc(b.n)}</span><span class="day">День ${l.day} · ${esc(DAYS[l.day]||"")}</span><span class="badge">≈${l.min} мин</span>${rd?'<span class="badge q">прочитано</span>':""}<span class="pos">${i+1} / ${L.length}</span></div>
+  card.innerHTML=`${courseEnabled(l)?courseHeader(l):`<div class="chead"><span class="dtag">${wire(b)}${esc(b.n)}</span><span class="day">День ${l.day} · ${esc(DAYS[l.day]||"")}</span><span class="badge">≈${l.min} мин</span>${rd?'<span class="badge q">прочитано</span>':""}<span class="pos">${i+1} / ${L.length}</span></div>`}
     <div class="lect"><h2 class="q">${esc(l.t)}</h2><p class="llead">${l.lead}</p>${secs}
     <div class="lkey"><span class="stepchip"><b>Запомнить</b></span><ul>${l.key.map(k=>`<li>${k}</li>`).join("")}</ul></div>
     <div id="laskwrap"></div></div>`;
   linkTerms(card);
   renderLAsk();
-  $("controls").innerHTML=(rd?'<button class="btn primary" data-act="lnext">Дальше →</button>'
-      :'<button class="btn primary" data-act="ldone">Прочитано · дальше →</button><button class="btn" data-act="lnext">Пропустить</button>')
+  $("controls").innerHTML=(courseEnabled(l)
+      ?rd?P.course[l.day]?.reviewPassedAt?'<button class="btn primary" data-act="lnext">К следующему дню →</button>'
+          :P.course[l.day]?.practicePassedAt?P.course[l.day].reviewDue<=Date.now()?'<button class="btn primary" data-course-stage="review">К повторению →</button>':'<button class="btn primary" data-act="lnext">К следующему дню →</button>'
+          :`<button class="btn primary" data-course-stage="${courseSuggestedStage(l)}">${P.course[l.day]?.quizPassedAt?"К ситуации →":"К проверке →"}</button>`
+        :'<button class="btn primary" data-act="ldone">Прочитал · к проверке →</button>'
+      :rd?'<button class="btn primary" data-act="lnext">Дальше →</button>'
+        :'<button class="btn primary" data-act="ldone">Прочитано · дальше →</button><button class="btn" data-act="lnext">Пропустить</button>')
     +`<button class="btn" data-act="trainday" data-day="${l.day}">Карточки дня ${l.day}</button>`
     +(i>0?'<button class="btn ghost" data-act="lprev">← Назад</button>':"")
     +'<button class="btn ghost spacer" data-act="llist">Все лекции</button>';

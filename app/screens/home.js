@@ -9,14 +9,18 @@ function homeNext(){
     return {act:"mix",title:"Продолжить тренировку",label:`Задание ${MIX.i+1} из ${MIX.items.length}`,sub:"Смешанная сессия ждёт тебя"};
   const c=counts();
   if(c.due) return {act:"cards",title:"Повторить изученное",label:`Повторить ${c.due} ${plural(c.due,"карточку","карточки","карточек")}`,sub:"Для этих карточек подошёл срок повторения"};
-  const u=lectList().find(l=>!P.read[l.id]);
-  if(u) return {act:"lect",title:u.t,label:`Открыть лекцию дня ${u.day}`,sub:"Следующая непрочитанная лекция"};
+  const u=courseNextLesson();
+  if(u){
+    const stage=courseSuggestedStage(u);
+    const names={read:"Открыть лекцию",check:"Пройти проверку",practice:"Решить ситуацию",review:"Повторить урок"};
+    return {act:"lect",title:u.t,label:`${names[stage]} дня ${u.day}`,sub:stage==="review"?"Время проверить, что осталось в памяти":"Следующий шаг учебного маршрута"};
+  }
   return {act:"train",title:"Выбрать тренировку",label:"К упражнениям",sub:"Задачи, команды и диагностика в одном месте"};
 }
 function homeGo(){
   const n=homeNext();
   if(n.act==="mix") setMode("mix");
   else if(n.act==="cards"){ buildQueue(); setMode("cards"); }
-  else if(n.act==="lect"){ const u=lectList().find(l=>!P.read[l.id]); if(u) lectOpen(u.id); setMode("lect"); }
+  else if(n.act==="lect"){ const u=courseNextLesson(); if(u) lectOpen(u.id); setMode("lect"); }
   else setMode("train");
 }

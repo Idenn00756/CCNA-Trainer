@@ -11,6 +11,9 @@ document.addEventListener("click",e=>{
   if(pon){ P.ui.ping=pon.dataset.pingon==="1"; save(); if(!pingOn()) pingClose(); render(); renderSettings(); return; }
   const th=tg.closest("[data-th]");
   if(th){ P.ui.theme=th.dataset.th; save(); applyTheme(); renderSettings(); return; }
+  const stage=tg.closest("[data-course-stage]"); if(stage){ courseOpenStage(stage.dataset.courseStage); return; }
+  const choice=tg.closest("[data-course-choice]"); if(choice){ coursePick(+choice.dataset.courseChoice); return; }
+  const practice=tg.closest("[data-course-practice]"); if(practice){ coursePracticePick(+practice.dataset.coursePractice); return; }
   const training=tg.closest("[data-train]");
   if(training){
     const kind=training.dataset.train;
@@ -73,6 +76,11 @@ document.addEventListener("click",e=>{
     case "ping": pingToggle(); break;
     case "pingclose": pingClose(); break;
     case "ldone": lectDone(); break;
+    case "coursequiznext": courseQuizNext(); break;
+    case "coursequizback": courseQuizBack(); break;
+    case "coursepracticecheck": coursePracticeCheck(); break;
+    case "courseretry": courseRetry(); break;
+    case "coursenextday": lectStep(1); break;
     case "lnext": lectStep(1); break;
     case "lprev": lectStep(-1); break;
     case "llist": P.ui.lesson=""; save(); render(); window.scrollTo({top:0}); break;
@@ -145,6 +153,7 @@ document.addEventListener("keydown",e=>{
   if(v==="match"){ if(!inInput&&e.key==="Enter"&&MT.fin){ e.preventDefault(); matchNext(); } return; }
   if(v==="lect"){
     if(inInput||!P.ui.lesson) return;
+    if(courseEnabled(lectCur())&&P.ui.lessonStage!=="read") return;
     if(e.key==="ArrowRight"){ e.preventDefault(); lectStep(1); }
     else if(e.key==="ArrowLeft"){ e.preventDefault(); lectStep(-1); }
     else if(e.key==="Enter"){ e.preventDefault(); lectDone(); }

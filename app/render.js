@@ -15,7 +15,11 @@ function renderGauges(){
   else if(m==="mix"){ const len=MIX.items.length, answered=MIX.res.filter(x=>x!==undefined).length; g.innerHTML=goal+gauge("Готово",`${Math.min(MIX.i,len)}/${len}`)+gauge("Верно",pct(MIX.res.filter(Boolean).length,answered)); }
   else if(m==="cards"){ const c=counts(); g.innerHTML=goal+gauge("Повторить",c.due,c.due?"due":"")+gauge("Изучено",c.learned+"/"+c.total); }
   else if(v==="case"){ const L=caseList(); g.innerHTML=goal+gauge("Решено",L.filter(c=>P.cases[c.id]&&P.cases[c.id].done).length+"/"+L.length); }
-  else if(m==="lect"){ const L=lectList(); g.innerHTML=goal+gauge("Прочитано",L.filter(l=>P.read[l.id]).length+"/"+L.length); }
+  else if(m==="lect"){
+    const L=lectList(), guided=L.filter(courseEnabled);
+    g.innerHTML=goal+gauge("Прочитано",L.filter(l=>P.read[l.id]).length+"/"+L.length)
+      +(guided.length?gauge("Освоено",guided.filter(l=>P.course[l.day]?.reviewPassedAt).length+"/"+guided.length):"");
+  }
   else if(v==="match"){ g.innerHTML=goal+gauge("Наборов",P.match.n||0)+gauge("Без ошибок",P.match.perfect||0); }
   else if(m==="prac"){ const b=P.sub.by[PR.task?PR.task.topic:""]; g.innerHTML=goal+gauge("Точность",b?pct(b.ok,b.n):"—")+gauge("Серия",PR.streak); }
   else if(m==="cli"){ const L=cliList(), done=L.filter(t=>P.cli[t.id]&&P.cli[t.id].done).length; g.innerHTML=goal+gauge("Решено",done+"/"+L.length); }
@@ -70,7 +74,7 @@ function renderKeys(){
     :v==="cli"?'<span><kbd>Enter</kbd> выполнить</span><span><kbd>?</kbd> подсказка</span><span>сокращения вроде <kbd>int g0/1</kbd> принимаются</span>'
     :v==="case"?'<span><kbd>1</kbd>…<kbd>4</kbd> диагноз</span><span><kbd>Enter</kbd> выполнить команду / дальше</span><span><kbd>?</kbd> подсказка</span>'
     :v==="match"?'<span>нажмите пару: элемент слева, затем справа</span>'
-    :v==="lect"?'<span><kbd>←</kbd> <kbd>→</kbd> листать лекции</span><span><kbd>Esc</kbd> к списку</span><span>подчёркнутые термины открывают пояснение</span>'
+    :v==="lect"?'<span>Первые 15 дней: лекция → проверка → ситуация → повторение</span><span><kbd>Esc</kbd> к списку</span><span>подчёркнутые термины открывают пояснение</span>'
     :v==="home"?'<span>кнопка сверху продолжает с того места, где вы остановились</span><span>шестерёнка справа — блоки курса, цель дня и оформление</span>'
     :v==="train"?'<span>выберите один вид упражнений или смешанную сессию</span>'
     :'<span>день засчитывается в серию, когда выполнена вся дневная цель</span>';
