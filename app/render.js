@@ -11,7 +11,7 @@ function effView(){
 const gauge=(l,v,cls)=>`<div class="g${cls?" "+cls:""}"><span class="gl">${l}</span><span class="gv">${v}</span></div>`;
 function renderGauges(){
   const m=P.ui.mode, v=effView(), g=$("gauges"), ratio=dayRatio(P.days[dayKey(Date.now())]), goal=gauge("Цель дня",Math.round(Math.min(1,ratio)*100)+"%",ratio>=1?"done":"");
-  if(m==="home"){ const c=counts(), st=streaks(); g.innerHTML=goal+gauge("Повторить",c.due,c.due?"due":"")+gauge("Серия",st.cur); }
+  if(m==="home"||m==="train"){ const c=counts(), st=streaks(); g.innerHTML=goal+gauge("Повторить",c.due,c.due?"due":"")+gauge("Серия",st.cur); }
   else if(m==="mix"){ const len=MIX.items.length, answered=MIX.res.filter(x=>x!==undefined).length; g.innerHTML=goal+gauge("Готово",`${Math.min(MIX.i,len)}/${len}`)+gauge("Верно",pct(MIX.res.filter(Boolean).length,answered)); }
   else if(m==="cards"){ const c=counts(); g.innerHTML=goal+gauge("Повторить",c.due,c.due?"due":"")+gauge("Изучено",c.learned+"/"+c.total); }
   else if(v==="case"){ const L=caseList(); g.innerHTML=goal+gauge("Решено",L.filter(c=>P.cases[c.id]&&P.cases[c.id].done).length+"/"+L.length); }
@@ -37,7 +37,7 @@ function chipsFor(kind){
 function renderToolbar(){
   const m=P.ui.mode, v=effView(), tb=$("toolbar"), seg=(attr,list,cur)=>list.map(([k,l])=>`<button data-${attr}="${k}" aria-pressed="${String(cur)===String(k)}">${l}</button>`).join("");
   const presets='<button class="mini" data-act="early">Дни 1–15</button><button class="mini" data-act="all">Все блоки</button>';
-  if(m==="home"||m==="prog"){ tb.innerHTML=""; return; }
+  if(m==="home"||m==="train"||m==="prog"){ tb.innerHTML=""; return; }
   if(m==="mix"){
     const len=MIX.items.length, it=MIX.items[MIX.i], done=Math.min(MIX.i,len);
     tb.innerHTML=`<div class="mixbar"><span class="mixcount">${it?`${MIX.i+1} / ${len}`:`${len} / ${len}`}</span><div class="mixtrack"><i style="width:${len?(done/len*100).toFixed(1):0}%"></i></div>${it?`<span class="mtype">${MIX_TYPE[it.type]}</span>`:""}<button class="mini" data-act="mixnew">Собрать заново</button></div>
@@ -72,6 +72,7 @@ function renderKeys(){
     :v==="match"?'<span>нажмите пару: элемент слева, затем справа</span>'
     :v==="lect"?'<span><kbd>←</kbd> <kbd>→</kbd> листать лекции</span><span><kbd>Esc</kbd> к списку</span><span>подчёркнутые термины открывают пояснение</span>'
     :v==="home"?'<span>кнопка сверху продолжает с того места, где вы остановились</span><span>шестерёнка справа — блоки курса, цель дня и оформление</span>'
+    :v==="train"?'<span>выберите один вид упражнений или смешанную сессию</span>'
     :'<span>день засчитывается в серию, когда выполнена вся дневная цель</span>';
 }
 function render(){
@@ -85,6 +86,7 @@ function render(){
   if(m==="mix"&&!MIX.built) buildMix();                      // сессия собирается до панели, чтобы счётчик был верным
   renderToolbar();
   if(m==="home") renderHome();
+  else if(m==="train") renderTraining();
   else if(m==="mix") renderMix();
   else if(m==="lect") renderLessons();
   else if(m==="cards") renderCards();
@@ -97,6 +99,7 @@ function render(){
 }
 function setMode(m){
   if(!MODES.some(x=>x[0]===m)) return;
+  if(SET_OPEN) closeSettings();
   const from=P.ui.mode;
   if(from==="prac") prRead();
   P.ui.mode=m; save();

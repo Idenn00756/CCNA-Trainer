@@ -9,8 +9,7 @@ cliFirstOpen(); caseFirstOpen(); matchFirstOpen();
 achSilent(); ACH_ON=true;
 applyTheme();
 render();
-// первое открытие: Пинг сам представляется — на главной он и так виден
-if(pingOn()&&P.ui.mode!=="home"&&!Object.keys(P.days).length&&!Object.keys(P.cards).length) pingOpen();
+// Сигнал доступен по иконке в шапке; не перекрываем учебный экран при первом входе.
 
 /* ═══ Синхронизация прогресса, Claude и отзывы ═════════ */
 (async()=>{

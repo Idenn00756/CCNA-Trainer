@@ -9,7 +9,7 @@ const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"
 const strip=h=>String(h).replace(/<[^>]+>/g,"");
 const LET=["A","B","C","D","E","F","G","H"];
 const DAY=864e5, MATURE=21, LS="ccna-trainer-v3";
-const MODES=[["home","Главная"],["mix","Микс"],["lect","Лекции"],["cards","Карточки"],["prac","Практика"],["cli","Команды"],["prog","Прогресс"]];
+const MODES=[["home","Сегодня"],["lect","Лекции"],["train","Тренировка"],["mix","Микс"],["cards","Карточки"],["prac","Практика"],["cli","Команды"],["prog","Прогресс"]];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function plural(n,one,few,many){const a=n%10,b=n%100;if(a===1&&b!==11)return one;if(a>=2&&a<=4&&(b<10||b>=20))return few;return many;}

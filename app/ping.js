@@ -116,8 +116,8 @@ function pingMood(){
 function pingStatus(){
   const tk=dayKey(Date.now()), ratio=dayRatio(P.days[tk]), st=streaks(), c=counts(), gl=pingGoalLeft();
   const start=!Object.keys(P.days).length&&!Object.keys(P.cards).length;
-  if(start) return {mood:"happy",acts:[["Открыть микс",'data-mode="mix"']],
-    line:`Привет! Я ${PING_NAME}. Буду рядом: подскажу, похвалю и присмотрю за целью дня. Начнём с микса — он сам соберёт задания.`
+  if(start) return {mood:"happy",acts:[["Открыть лекции",'data-mode="lect"']],
+    line:`Привет! Я ${PING_NAME}. Буду рядом: подскажу, похвалю и присмотрю за целью дня. Начнём с первой лекции, а затем закрепим её на тренировке.`
       +(window.EDITION==="public"?" Это открытая бета: заметили ошибку или есть идея — нажмите «Отзыв» над заданием.":"")};
   if(ratio>=1) return {mood:"cheer",acts:[["Ещё микс",'data-mode="mix"']],
     line:`Цель дня закрыта${st.cur?`, серия ${st.cur} ${plural(st.cur,"день","дня","дней")}`:""}. Можно отдохнуть — или пройти ещё один микс.`};

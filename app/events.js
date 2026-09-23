@@ -11,6 +11,16 @@ document.addEventListener("click",e=>{
   if(pon){ P.ui.ping=pon.dataset.pingon==="1"; save(); if(!pingOn()) pingClose(); render(); renderSettings(); return; }
   const th=tg.closest("[data-th]");
   if(th){ P.ui.theme=th.dataset.th; save(); applyTheme(); renderSettings(); return; }
+  const training=tg.closest("[data-train]");
+  if(training){
+    const kind=training.dataset.train;
+    if(kind==="cards"||kind==="cli"||kind==="mix"){ setMode(kind); return; }
+    if(kind==="drills"||kind==="case"||kind==="match"){
+      P.ui.topic=kind==="drills"?"mix":kind;
+      if(kind==="case") caseFirstOpen(); else if(kind==="match") matchFirstOpen(); else prNew();
+      setMode("prac"); return;
+    }
+  }
   const md=tg.closest("[data-mode]"); if(md){ setMode(md.dataset.mode); return; }
   const les=tg.closest("[data-lesson]"); if(les){ lectOpen(les.dataset.lesson); setMode("lect"); return; }
   const la=tg.closest("[data-lask]"); if(la){ askLesson(la.dataset.lask); return; }
@@ -58,7 +68,6 @@ document.addEventListener("click",e=>{
     case "gclose": closeGloss(); break;
     case "go": homeGo(); break;
     case "settings": openSettings(); break;
-    case "more": openMore(); break;
     case "setclose": closeSettings(); break;
     case "feedback": openFeedback(); break;
     case "ping": pingToggle(); break;
